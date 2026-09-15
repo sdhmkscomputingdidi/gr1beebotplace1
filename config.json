@@ -1,0 +1,144 @@
+{
+  "levels": [
+    {
+      "level": 1,
+      "mission": "Go to School",
+      "difficulty": "Easy",
+      "spiders": 0,
+      "targets": ["images/school.png"]
+    },
+    {
+      "level": 2,
+      "mission": "Go to the Hospital",
+      "difficulty": "Easy",
+      "spiders": 0,
+      "targets": ["images/hospital.png"]
+    },
+    {
+      "level": 3,
+      "mission": "Go to the Police Station",
+      "difficulty": "Easy",
+      "spiders": 0,
+      "targets": ["images/police.png"]
+    },
+    {
+      "level": 4,
+      "mission": "Go to the Fire Station",
+      "difficulty": "Easy",
+      "spiders": 0,
+      "targets": ["images/firestation.png"]
+    },
+    {
+      "level": 5,
+      "mission": "Go to the Library",
+      "difficulty": "Easy",
+      "spiders": 0,
+      "targets": ["images/library.png"]
+    },
+    {
+      "level": 6,
+      "mission": "Go to the Shop",
+      "difficulty": "Easy",
+      "spiders": 0,
+      "targets": ["images/shop.png"]
+    },
+    {
+      "level": 7,
+      "mission": "Go to the Swimming Pool",
+      "difficulty": "Easy",
+      "spiders": 0,
+      "targets": ["images/swimmingpool.png"]
+    },
+    {
+      "level": 8,
+      "mission": "Go to School (avoid the spider)",
+      "difficulty": "Medium",
+      "spiders": 1,
+      "targets": ["images/school.png"]
+    },
+    {
+      "level": 9,
+      "mission": "Go to the Hospital (avoid the spider)",
+      "difficulty": "Medium",
+      "spiders": 1,
+      "targets": ["images/hospital.png"]
+    },
+    {
+      "level": 10,
+      "mission": "Go to the Police Station (avoid the spider)",
+      "difficulty": "Medium",
+      "spiders": 1,
+      "targets": ["images/police.png"]
+    },
+    {
+      "level": 11,
+      "mission": "Go to the Fire Station (avoid the spider)",
+      "difficulty": "Medium",
+      "spiders": 1,
+      "targets": ["images/firestation.png"]
+    },
+    {
+      "level": 12,
+      "mission": "Go to the Library (avoid the spider)",
+      "difficulty": "Medium",
+      "spiders": 1,
+      "targets": ["images/library.png"]
+    },
+    {
+      "level": 13,
+      "mission": "Go to the Shop (avoid the spider)",
+      "difficulty": "Medium",
+      "spiders": 1,
+      "targets": ["images/shop.png"]
+    },
+    {
+      "level": 14,
+      "mission": "Go to the Swimming Pool (avoid the spider)",
+      "difficulty": "Medium",
+      "spiders": 1,
+      "targets": ["images/swimmingpool.png"]
+    },
+    {
+      "level": 15,
+      "mission": "Go to School (2 spiders!)",
+      "difficulty": "Hard",
+      "spiders": 2,
+      "targets": ["images/school.png"]
+    },
+    {
+      "level": 16,
+      "mission": "Go to the Hospital (2 spiders!)",
+      "difficulty": "Hard",
+      "spiders": 2,
+      "targets": ["images/hospital.png"]
+    },
+    {
+      "level": 17,
+      "mission": "Go to the Police Station (2 spiders!)",
+      "difficulty": "Hard",
+      "spiders": 2,
+      "targets": ["images/police.png"]
+    },
+    {
+      "level": 18,
+      "mission": "Go to the Fire Station (2 spiders!)",
+      "difficulty": "Hard",
+      "spiders": 2,
+      "targets": ["images/firestation.png"]
+    },
+    {
+      "level": 19,
+      "mission": "Go to the Library (3 spiders!)",
+      "difficulty": "Hard",
+      "spiders": 3,
+      "targets": ["images/library.png"]
+    },
+    {
+      "level": 20,
+      "mission": "Go to the Swimming Pool (3 spiders!)",
+      "difficulty": "Hard",
+      "spiders": 3,
+      "targets": ["images/swimmingpool.png"]
+    }
+  ]
+}

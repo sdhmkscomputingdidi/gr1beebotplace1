@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bee-Bot Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+            color: #334155;
+        }
+        .container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 1rem;
+        }
+        .game-area {
+            display: flex;
+            flex-direction: row;
+            align-items: stretch;
+            gap: 2rem;
+            width: 100%;
+            max-width: 1400px;
+            background-color: #e2e8f0;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            padding: 1.5rem;
+        }
+        .canvas-container {
+            flex: 2;
+            position: relative;
+            min-width: 0;
+        }
+        .controls-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 0;
+        }
+        canvas {
+            border-radius: 0.75rem;
+            touch-action: none;
+        }
+        #beeBotCanvas {
+            position: relative; /* To appear above the path */
+            z-index: 10;
+            border: 4px solid #94a3b8;
+        }
+        #pathCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 5;
+        }
+        #backgroundCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 0.75rem;
+            margin-top: 0.75rem;
+            width: 100%;
+            max-width: 300px;
+        }
+        /* D-Pad Layout */
+        #penBtn      { grid-row: 1; grid-column: 1; }
+        #forwardBtn  { grid-row: 1; grid-column: 2; }
+        #nextChallengeBtn { grid-row: 1; grid-column: 3; }
+        #leftBtn     { grid-row: 2; grid-column: 1; }
+        #goBtn       { grid-row: 2; grid-column: 2; }
+        #rightBtn    { grid-row: 2; grid-column: 3; }
+        #homeBtn     { grid-row: 3; grid-column: 1; }
+        #backwardBtn { grid-row: 3; grid-column: 2; }
+        #clearBtn    { grid-row: 3; grid-column: 3; }
+
+        .program-display {
+            background-color: #fff;
+            border: 2px solid #cbd5e1;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            margin-top: 0.5rem;
+            flex: 1;
+            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 0.5rem;
+            min-height: 0;
+            overflow-y: auto;
+        }
+        .program-icon {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            width: 3rem;
+            height: 3rem;
+            background-color: #f1f5f9;
+            border-radius: 0.5rem;
+            border: 1px solid #e2e8f0;
+            user-select: none;
+            position: relative; /* Added for numbering */
+        }
+        .program-icon svg {
+            width: 2rem;
+            height: 2rem;
+        }
+        .program-step-number {
+            position: absolute;
+            top: -0.5rem;
+            right: -0.5rem;
+            background-color: #3b82f6; /* Blue background */
+            color: white;
+            border-radius: 9999px; /* Full circle */
+            padding: 0.2rem 0.5rem;
+            font-size: 0.75rem;
+            font-weight: bold;
+            min-width: 1.5rem; /* Ensure it's a circle for single digits */
+            text-align: center;
+            line-height: 1;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .btn {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 0.75rem;
+            border-radius: 1rem;
+            font-weight: bold;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        .btn:active {
+            transform: translateY(2px);
+            box-shadow: none;
+        }
+        .btn-green { background-color: #4ade80; box-shadow: 0 4px #22c55e; color: #166534; }
+        .btn-blue { background-color: #60a5fa; box-shadow: 0 4px #3b82f6; color: #1e40af; }
+        .btn-red { background-color: #f87171; box-shadow: 0 4px #ef4444; color: #991b1b; }
+        .btn-yellow { background-color: #facc15; box-shadow: 0 4px #eab308; color: #854d0e; }
+        .btn-purple { background-color: #c084fc; box-shadow: 0 4px #a855f7; color: #6b21a8; }
+        .btn-gray { background-color: #cbd5e1; box-shadow: 0 4px #94a3b8; color: #475569; }
+        .btn-gray.active { background-color: #94a3b8; box-shadow: 0 4px #64748b; color: #1e293b; }
+
+        .message-box {
+            position: fixed; top: 20%; left: 50%; transform: translate(-50%, -50%);
+            background-color: rgba(255, 255, 255, 0.95); border: 2px solid #16a34a;
+            border-radius: 1rem; padding: 2rem; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center; z-index: 1000; display: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+<div class="container relative">
+    <h1 class="text-3xl sm:text-4xl font-bold text-center mb-6 text-gray-800">Bee-Bot Simulator</h1>
+    <button id="fullscreenBtn" class="absolute top-4 right-4 p-2 rounded-full bg-gray-200 hover:bg-gray-300 transition" title="Toggle Fullscreen" aria-label="Toggle Fullscreen">
+        <svg id="fullscreenIconOpen" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m0 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5h-4m0 0v-4m0 4l-5-5" /></svg>
+        <svg id="fullscreenIconClose" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 4l-5 5m0 0l5 5m-5-5h11a2 2 0 012 2v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-2a2 2 0 012-2h.5" /></svg>
+    </button>
+
+    <div class="game-area">
+        <div class="canvas-container">
+            <canvas id="backgroundCanvas" width="600" height="600"></canvas>
+            <canvas id="pathCanvas" width="600" height="600"></canvas>
+            <canvas id="beeBotCanvas" width="600" height="600"></canvas>
+        </div>
+        <div class="controls-container">
+            <h2 style="font-size: 1.75rem; font-weight: 700; margin: 0 0 0.25rem 0; text-align: center;">Program</h2>
+            <div id="programDisplay" class="program-display"></div>
+            <h2 style="font-size: 1.25rem; font-weight: 700; margin: 0.5rem 0 0.25rem 0; text-align: center;">Controls</h2>
+            <div class="controls">
+                <button id="penBtn" class="btn btn-gray" title="Toggle Pen (P)" aria-label="Toggle Pen" aria-pressed="false"><svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 24 24" fill="currentColor"><path d="M18.04,4.04a2.83,2.83,0,0,0-4,0L3,15.08,3,19a2,2,0,0,0,2,2H8.92L20,9.95a2.83,2.83,0,0,0,0-4ZM7.08,19H5V16.92l8.5-8.5,2.08,2.08Z"/></svg></button>
+                <button id="forwardBtn" class="btn btn-green" title="Move Forward (Arrow Up)" data-command="forward" aria-label="Move Forward"><svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L4 10h5v10h6V10h5L12 2z"/></svg></button>
+                <button id="nextChallengeBtn" class="btn btn-purple" title="Next Challenge" aria-label="Next Challenge">Next</button>
+                <button id="leftBtn" class="btn btn-blue" title="Turn Left (Arrow Left)" data-command="left" aria-label="Turn Left"><svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 24 24" fill="currentColor"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg></button>
+                <button id="goBtn" class="btn btn-yellow" title="Execute Program (Enter)" aria-label="Execute Program">Go!</button>
+                <button id="rightBtn" class="btn btn-blue" title="Turn Right (Arrow Right)" data-command="right" aria-label="Turn Right"><svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 24 24" fill="currentColor" transform="scale(-1, 1)"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg></button>
+                <button id="homeBtn" class="btn btn-purple" title="Return to Start (H)" aria-label="Return to Start"><svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></button>
+                <button id="backwardBtn" class="btn btn-green" title="Move Backward (Arrow Down)" data-command="backward" aria-label="Move Backward"><svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22l8-8h-5V4h-6v10H4l8 8z"/></svg></button>
+                <button id="clearBtn" class="btn btn-red" title="Clear Program (Escape)" aria-label="Clear Program"><svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+            </div>
+            <div class="mt-4 w-full max-w-xs">
+                <label for="spiderCount" class="block text-lg font-bold mb-2 text-gray-700">Number of Spiders:</label>
+                <select id="spiderCount" class="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                    <option value="0">0</option>
+                    <option value="1" selected>1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="messageBox" class="message-box" role="alert" aria-live="polite" aria-modal="true">
+    <p id="messageText" class="text-xl font-bold text-green-700"></p>
+    <button id="messageCloseBtn" class="mt-4 px-4 py-2 bg-green-500 text-white rounded-lg" aria-label="Close message">OK</button>
+</div>
+
+<script>
+    window.onload = function() {
+        const beeBotCanvas = document.getElementById('beeBotCanvas');
+        const ctx = beeBotCanvas.getContext('2d');
+        const pathCanvas = document.getElementById('pathCanvas');
+        const pathCtx = pathCanvas.getContext('2d');
+        const backgroundCanvas = document.getElementById('backgroundCanvas');
+        const backgroundCtx = backgroundCanvas.getContext('2d');
+
+        const goBtn = document.getElementById('goBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const forwardBtn = document.getElementById('forwardBtn');
+        const backwardBtn = document.getElementById('backwardBtn');
+        const leftBtn = document.getElementById('leftBtn');
+        const rightBtn = document.getElementById('rightBtn');
+        const homeBtn = document.getElementById('homeBtn');
+        const penBtn = document.getElementById('penBtn');
+        const nextChallengeBtn = document.getElementById('nextChallengeBtn');
+        const programDisplay = document.getElementById('programDisplay');
+        const messageBox = document.getElementById('messageBox');
+        const messageText = document.getElementById('messageText');
+        const messageCloseBtn = document.getElementById('messageCloseBtn');
+        const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const fullscreenIconOpen = document.getElementById('fullscreenIconOpen');
+        const fullscreenIconClose = document.getElementById('fullscreenIconClose');
+        const spiderCountSelect = document.getElementById('spiderCount');
+
+        const NORTH = 0, EAST = 90, SOUTH = 180, WEST = 270;
+        const MOVEMENTS = { [NORTH]: [0, -1], [EAST]: [1, 0], [SOUTH]: [0, 1], [WEST]: [-1, 0] };
+        const ANIMATION_SPEED = 0.1;
+        const POSITION_THRESHOLD = 1;
+        const DIRECTION_THRESHOLD = 1;
+        const MAX_COMMANDS = 50;
+
+        let isPenDown = false;
+        const path = [];
+
+        function togglePen() {
+            isPenDown = !isPenDown;
+            penBtn.classList.toggle('active', isPenDown);
+            penBtn.setAttribute('aria-pressed', isPenDown);
+        }
+
+        function recordPath(x, y) {
+            if (isPenDown) {
+                path.push({ x, y });
+                drawPath();
+            }
+        }
+
+        function drawPath() {
+            pathCtx.clearRect(0, 0, pathCanvas.width, pathCanvas.height);
+            if (path.length < 2) return;
+            pathCtx.strokeStyle = '#ef4444';
+            pathCtx.lineWidth = 10;
+            pathCtx.lineCap = 'round';
+            pathCtx.lineJoin = 'round';
+            pathCtx.beginPath();
+            pathCtx.moveTo(path[0].x, path[0].y);
+            for (let i = 1; i < path.length; i++) {
+                pathCtx.lineTo(path[i].x, path[i].y);
+            }
+            pathCtx.stroke();
+        }
+
+        function clearPath() {
+            path.length = 0;
+            drawPath();
+        }
+
+        penBtn.addEventListener('click', togglePen);
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+
+        function updateFullscreenIcons() {
+            fullscreenIconOpen.classList.toggle('hidden', !!document.fullscreenElement);
+            fullscreenIconClose.classList.toggle('hidden', !document.fullscreenElement);
+        }
+
+        fullscreenBtn.addEventListener('click', toggleFullScreen);
+        document.addEventListener('fullscreenchange', updateFullscreenIcons);
+
+        const beeBotImage = new Image();
+        beeBotImage.src = 'beebot.png';
+        beeBotImage.onload = () => loadConfig();
+        beeBotImage.onerror = () => showMessage('Could not load BeeBot image.', 'text-red-700');
+
+        const spiderImage = new Image();
+        spiderImage.src = 'spider.png';
+
+        const flowerImage = new Image();
+        flowerImage.src = 'flower.png';
+
+        let gameConfig = {};
+
+        let gridSize = 6;
+        let cellSize = beeBotCanvas.width / gridSize;
+        let beeBotStartX, beeBotStartY, beeBotStartDir;
+        let beeBotX = 0, beeBotY = 0, beeBotDir = NORTH;
+        let currentX = 0, currentY = 0, currentDir = NORTH;
+        let targetX = 0, targetY = 0;
+        let spiderPositions = [];
+        let numSpiders = 1;
+        const commands = [];
+        let isAnimating = false;
+        let commandIndex = 0;
+
+        let isDragging = false;
+        let draggedItem = null;
+        let dragOffsetX, dragOffsetY;
+
+        async function loadConfig() {
+            gameConfig = {
+                "settings": {
+                    "backgroundColor": "#e2e8f0",
+                    "initialBeeBotPosition": {
+                        "x": 2,
+                        "y": 0,
+                        "dir": 0
+                    },
+                    "gridSize": 4,
+                    "enableDragAndDrop": true
+                }
+            };
+            applyConfig();
+        }
+
+        function applyDefaultConfig() {
+            gameConfig = {
+                settings: {
+                    backgroundColor: '#e2e8f0',
+                    initialBeeBotPosition: { x: 0, y: 0, dir: NORTH },
+                    gridSize: 6,
+                    enableDragAndDrop: true
+                }
+            };
+            applyConfig();
+        }
+
+        function applyConfig() {
+            const settings = gameConfig.settings;
+            gridSize = settings.gridSize;
+            cellSize = beeBotCanvas.width / gridSize;
+            initialize();
+        }
+
+        function initialize() {
+            const settings = gameConfig.settings;
+            const startPos = settings.initialBeeBotPosition;
+            beeBotX = startPos.x;
+            beeBotY = startPos.y;
+            beeBotDir = startPos.dir || NORTH;
+
+            beeBotStartX = beeBotX;
+            beeBotStartY = beeBotY;
+            beeBotStartDir = beeBotDir;
+            currentX = beeBotX * cellSize;
+            currentY = beeBotY * cellSize;
+            currentDir = beeBotDir;
+            commands.length = 0;
+            clearPath();
+            drawPath();
+            recordPath(currentX + cellSize / 2, currentY + cellSize / 2);
+            pathCanvas.style.display = 'block'; // Ensure pathCanvas is visible
+            do {
+                targetX = Math.floor(Math.random() * gridSize);
+                targetY = Math.floor(Math.random() * gridSize);
+            } while (targetX === beeBotX && targetY === beeBotY);
+
+            spiderPositions = [];
+            const occupiedPositions = [{x: beeBotX, y: beeBotY}, {x: targetX, y: targetY}];
+
+            for (let i = 0; i < numSpiders; i++) {
+                let newSpiderX, newSpiderY;
+                let isOccupied;
+                do {
+                    newSpiderX = Math.floor(Math.random() * gridSize);
+                    newSpiderY = Math.floor(Math.random() * gridSize);
+                    isOccupied = occupiedPositions.some(pos => pos.x === newSpiderX && pos.y === newSpiderY);
+                } while (isOccupied);
+                spiderPositions.push({x: newSpiderX, y: newSpiderY});
+                occupiedPositions.push({x: newSpiderX, y: newSpiderY});
+            }
+
+            draw();
+            updateProgramDisplay();
+        }
+
+        function returnToHome() {
+            if (isAnimating) return;
+            beeBotX = beeBotStartX;
+            beeBotY = beeBotStartY;
+            beeBotDir = beeBotStartDir;
+            currentX = beeBotX * cellSize;
+            currentY = beeBotY * cellSize;
+            currentDir = beeBotDir;
+            clearPath();
+            drawPath();
+            recordPath(currentX + cellSize / 2, currentY + cellSize / 2);
+            draw();
+        }
+
+        function drawBackground() {
+            backgroundCtx.clearRect(0, 0, backgroundCanvas.width, backgroundCanvas.height);
+            backgroundCtx.fillStyle = (gameConfig && gameConfig.settings && gameConfig.settings.backgroundColor) || '#e2e8f0';
+            backgroundCtx.fillRect(0, 0, backgroundCanvas.width, backgroundCanvas.height);
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, beeBotCanvas.width, beeBotCanvas.height);
+            // If your background image has a grid, you can comment out or remove the following loop:
+            ctx.strokeStyle = '#94a3b8';
+            for (let i = 0; i <= gridSize; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * cellSize, 0);
+                ctx.lineTo(i * cellSize, beeBotCanvas.height);
+                ctx.stroke();
+                ctx.moveTo(0, i * cellSize);
+                ctx.lineTo(beeBotCanvas.width, i * cellSize);
+                ctx.stroke();
+            }
+            drawTarget();
+            drawSpider(); // Draw spider
+            drawBeeBot(currentX, currentY, currentDir);
+        }
+
+        function drawTarget() {
+            if (flowerImage.complete && flowerImage.naturalWidth > 0) {
+                const flowerSize = cellSize * 0.8;
+                const flowerDrawX = targetX * cellSize + (cellSize - flowerSize) / 2;
+                const flowerDrawY = targetY * cellSize + (cellSize - flowerSize) / 2;
+                ctx.drawImage(flowerImage, flowerDrawX, flowerDrawY, flowerSize, flowerSize);
+            } else {
+                // Fallback to original square if image fails to load
+                ctx.fillStyle = '#facc15';
+                ctx.fillRect(targetX * cellSize, targetY * cellSize, cellSize, cellSize);
+            }
+        }
+
+        function drawSpider() {
+            if (spiderImage.complete && spiderImage.naturalWidth > 0) {
+                spiderPositions.forEach(spider => {
+                    const spiderSize = cellSize * 0.8;
+                    const spiderDrawX = spider.x * cellSize + (cellSize - spiderSize) / 2;
+                    const spiderDrawY = spider.y * cellSize + (cellSize - spiderSize) / 2;
+                    ctx.drawImage(spiderImage, spiderDrawX, spiderDrawY, spiderSize, spiderSize);
+                });
+            }
+        }
+
+        function drawBeeBot(x, y, dir) {
+            const botX = x + cellSize / 2;
+            const botY = y + cellSize / 2;
+            const size = cellSize * 0.7;
+            const angleRad = dir * Math.PI / 180;
+            ctx.save();
+            ctx.translate(botX, botY);
+            ctx.rotate(angleRad);
+            if (beeBotImage.complete) {
+                ctx.drawImage(beeBotImage, -size / 2, -size / 2, size, size);
+            }
+            ctx.restore();
+        }
+
+        function showMessage(text, color = 'text-green-700') {
+            messageText.textContent = text;
+            messageText.className = `text-xl font-bold ${color}`;
+            messageBox.style.display = 'block';
+        }
+
+        function updateProgramDisplay() {
+            programDisplay.innerHTML = '';
+            const icons = {
+                'forward': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#166534"><path d="M12 2L4 10h5v10h6V10h5L12 2z"/></svg>`,
+                'backward': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#166534"><path d="M12 22l8-8h-5V4h-6v10H4l8 8z"/></svg>`,
+                'left': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#1e40af"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>`,
+                'right': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#1e40af" transform="scale(-1, 1)"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></svg>`
+            };
+            commands.forEach((cmd, index) => {
+                const div = document.createElement('div');
+                div.innerHTML = icons[cmd];
+                div.className = 'program-icon';
+                const numSpan = document.createElement('span');
+                numSpan.textContent = index + 1;
+                numSpan.className = 'program-step-number';
+                div.appendChild(numSpan);
+                programDisplay.appendChild(div);
+            });
+        }
+
+        function animate() {
+            if (!isAnimating) return;
+            const targetXPos = beeBotX * cellSize;
+            const targetYPos = beeBotY * cellSize;
+            const targetDir = beeBotDir;
+            let angleDiff = Math.abs(currentDir - targetDir);
+            if (angleDiff > 180) angleDiff = 360 - angleDiff;
+            const hasReachedPosition = Math.abs(currentX - targetXPos) < POSITION_THRESHOLD && Math.abs(currentY - targetYPos) < POSITION_THRESHOLD;
+            const hasReachedDirection = angleDiff < DIRECTION_THRESHOLD;
+
+            if (hasReachedPosition && hasReachedDirection) {
+                recordPath(currentX + cellSize / 2, currentY + cellSize / 2);
+                if (commandIndex < commands.length) {
+                    processNextCommand();
+                } else {
+                    isAnimating = false;
+                    setButtonDisabledStates(false);
+                    programDisplay.childNodes.forEach(child => child.style.backgroundColor = 'transparent');
+                    if (beeBotX === targetX && beeBotY === targetY) {
+                        showMessage("You did it! Bee-Bot reached the target!", 'text-green-700');
+                    } else {
+                        showMessage("Bee-Bot finished its program, but didn't reach the target.", 'text-blue-700');
+                    }
+                }
+            } else {
+                currentX += (targetXPos - currentX) * ANIMATION_SPEED;
+                currentY += (targetYPos - currentY) * ANIMATION_SPEED;
+                let dDir = targetDir - currentDir;
+                if (dDir > 180) dDir -= 360;
+                if (dDir < -180) dDir += 360;
+                currentDir += dDir * ANIMATION_SPEED;
+                recordPath(currentX + cellSize / 2, currentY + cellSize / 2);
+            }
+            draw();
+            requestAnimationFrame(animate);
+        }
+
+        function processNextCommand() {
+            if (commandIndex >= commands.length) return;
+            if (commandIndex > 0) {
+                programDisplay.childNodes[commandIndex - 1].style.backgroundColor = 'transparent';
+            }
+            programDisplay.childNodes[commandIndex].style.backgroundColor = '#fef08a';
+            const command = commands[commandIndex];
+            const oldX = beeBotX, oldY = beeBotY;
+            const [dx, dy] = MOVEMENTS[beeBotDir] || [0, 0];
+            switch (command) {
+                case 'forward':
+                    beeBotX += dx;
+                    beeBotY += dy;
+                    break;
+                case 'backward':
+                    beeBotX -= dx;
+                    beeBotY -= dy;
+                    break;
+                case 'left':
+                    beeBotDir = (beeBotDir - 90 + 360) % 360;
+                    break;
+                case 'right':
+                    beeBotDir = (beeBotDir + 90) % 360;
+                    break;
+            }
+            if (beeBotX < 0 || beeBotX >= gridSize || beeBotY < 0 || beeBotY >= gridSize) {
+                isAnimating = false;
+                beeBotX = oldX;
+                beeBotY = oldY;
+                setButtonDisabledStates(false);
+                draw();
+                showMessage("Oops! Bee-Bot fell off the grid.", 'text-red-700');
+                return;
+            }
+
+            if (spiderPositions.some(spider => beeBotX === spider.x && beeBotY === spider.y)) {
+                isAnimating = false;
+                setButtonDisabledStates(false);
+                draw();
+                showMessage("Beware of the spider, avoid it!", 'text-red-700');
+                return;
+            }
+
+            commandIndex++;
+        }
+
+        function executeProgram() {
+            if (commands.length === 0 || isAnimating) return;
+            returnToHome();
+            isAnimating = true;
+            setButtonDisabledStates(true);
+            commandIndex = 0;
+            setTimeout(() => {
+                processNextCommand();
+                animate();
+            }, 50);
+        }
+
+        function setButtonDisabledStates(disabled) {
+            [forwardBtn, backwardBtn, leftBtn, rightBtn].forEach(btn => {
+                btn.disabled = disabled;
+            });
+        }
+
+        function resizeCanvas() {
+            const containerWidth = beeBotCanvas.parentElement.clientWidth;
+            const size = Math.min(containerWidth, 600);
+            [beeBotCanvas, pathCanvas, backgroundCanvas].forEach(c => {
+                c.width = size;
+                c.height = size;
+            });
+            cellSize = beeBotCanvas.width / gridSize;
+            currentX = beeBotX * cellSize;
+            currentY = beeBotY * cellSize;
+            drawBackground();
+            draw();
+            drawPath();
+        }
+
+        function addCommand(command) {
+            if (isAnimating) return;
+            if (commands.length >= MAX_COMMANDS) {
+                showMessage(`Maximum ${MAX_COMMANDS} commands allowed.`, 'text-orange-700');
+                return;
+            }
+            commands.push(command);
+            updateProgramDisplay();
+        }
+
+        function getMousePos(evt) {
+            const rect = beeBotCanvas.getBoundingClientRect();
+            const scaleX = beeBotCanvas.width / rect.width;
+            const scaleY = beeBotCanvas.height / rect.height;
+            const clientX = evt.clientX || (evt.touches && evt.touches[0].clientX);
+            const clientY = evt.clientY || (evt.touches && evt.touches[0].clientY);
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
+        function handleMouseDown(e) {
+            if (!gameConfig.settings.enableDragAndDrop) return; // Disable drag and drop if configured
+            if (isAnimating) return;
+            e.preventDefault();
+            const pos = getMousePos(e);
+
+            // Check if clicking on the BeeBot
+            const beeBotRect = { x: currentX, y: currentY, width: cellSize, height: cellSize };
+            if (pos.x >= beeBotRect.x && pos.x <= beeBotRect.x + beeBotRect.width &&
+                pos.y >= beeBotRect.y && pos.y <= beeBotRect.y + beeBotRect.height) {
+                isDragging = true;
+                draggedItem = 'beebot';
+                dragOffsetX = pos.x - currentX;
+                dragOffsetY = pos.y - currentY;
+                return;
+            }
+
+            // Check if clicking on the Target
+            const targetRect = { x: targetX * cellSize, y: targetY * cellSize, width: cellSize, height: cellSize };
+            if (pos.x >= targetRect.x && pos.x <= targetRect.x + targetRect.width &&
+                pos.y >= targetRect.y && pos.y <= targetRect.y + targetRect.height) {
+                isDragging = true;
+                draggedItem = 'target';
+                dragOffsetX = pos.x - (targetX * cellSize);
+                dragOffsetY = pos.y - (targetY * cellSize);
+            }
+        }
+
+        function handleMouseMove(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+            const pos = getMousePos(e);
+
+            if (draggedItem === 'beebot') {
+                currentX = pos.x - dragOffsetX;
+                currentY = pos.y - dragOffsetY;
+            } else if (draggedItem === 'target') {
+                // Temporarily update target position for visual feedback
+                const tempTargetX = pos.x - dragOffsetX;
+                const tempTargetY = pos.y - dragOffsetY;
+                // We don't update targetX/targetY here to avoid constant snapping,
+                // just redraw at the new mouse position.
+                draw(); // Redraw to show item being dragged
+                // Draw the target semi-transparently at the dragged position
+                ctx.globalAlpha = 0.5;
+                if (flowerImage.complete && flowerImage.naturalWidth > 0) {
+                    const flowerSize = cellSize * 0.8;
+                    ctx.drawImage(flowerImage, tempTargetX, tempTargetY, flowerSize, flowerSize);
+                } else {
+                    ctx.fillStyle = '#facc15';
+                    ctx.fillRect(tempTargetX, tempTargetY, cellSize, cellSize);
+                }
+                ctx.globalAlpha = 1.0;
+                return; // Return to avoid double drawing
+            }
+            draw();
+        }
+
+        function handleMouseUp(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+            const pos = getMousePos(e);
+            const gridX = Math.floor(pos.x / cellSize);
+            const gridY = Math.floor(pos.y / cellSize);
+
+            const isValidDrop = gridX >= 0 && gridX < gridSize && gridY >= 0 && gridY < gridSize;
+
+            if (isValidDrop) {
+                if (draggedItem === 'beebot') {
+                    const isOccupied = (gridX === targetX && gridY === targetY) || spiderPositions.some(s => s.x === gridX && s.y === gridY);
+                    if (!isOccupied) {
+                        beeBotX = gridX;
+                        beeBotY = gridY;
+                        beeBotStartX = beeBotX;
+                        beeBotStartY = beeBotY;
+                    }
+                } else if (draggedItem === 'target') {
+                    const isOccupied = (gridX === beeBotX && gridY === beeBotY) || spiderPositions.some(s => s.x === gridX && s.y === gridY);
+                    if (!isOccupied) {
+                        targetX = gridX;
+                        targetY = gridY;
+                    }
+                }
+            }
+
+            if (draggedItem === 'beebot') {
+                currentX = beeBotX * cellSize;
+                currentY = beeBotY * cellSize;
+                clearPath();
+                recordPath(currentX + cellSize / 2, currentY + cellSize / 2);
+            }
+
+            isDragging = false;
+            draggedItem = null;
+            draw();
+        }
+
+        function handleTouchStart(e) {
+            if (!gameConfig.settings.enableDragAndDrop) return; // Disable drag and drop if configured
+            if (e.touches.length === 1) {
+                handleMouseDown(e);
+            }
+        }
+
+        function handleTouchMove(e) {
+            if (e.touches.length === 1) {
+                handleMouseMove(e);
+            }
+        }
+
+        function handleTouchEnd(e) {
+             // Use changedTouches to get the position of the lifted finger
+            if (e.changedTouches.length === 1) {
+                const touch = e.changedTouches[0];
+                const rect = beeBotCanvas.getBoundingClientRect();
+                const scaleX = beeBotCanvas.width / rect.width;
+                const scaleY = beeBotCanvas.height / rect.height;
+                const mouseEvent = {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY,
+                    preventDefault: () => e.preventDefault()
+                };
+                handleMouseUp(mouseEvent);
+            }
+        }
+
+        // --- Event Listeners ---
+        [forwardBtn, backwardBtn, leftBtn, rightBtn].forEach(btn => {
+            btn.addEventListener('click', () => addCommand(btn.dataset.command));
+        });
+        goBtn.addEventListener('click', executeProgram);
+        homeBtn.addEventListener('click', returnToHome);
+        nextChallengeBtn.addEventListener('click', () => {
+            if (isAnimating) return;
+            initialize();
+        });
+
+        clearBtn.addEventListener('click', () => {
+            if (isAnimating) return;
+            commands.length = 0;
+            updateProgramDisplay();
+        });
+
+        messageCloseBtn.addEventListener('click', () => {
+            messageBox.style.display = 'none';
+            if (messageText.textContent.includes("You did it!")) {
+                initialize();
+            }
+        });
+
+        spiderCountSelect.addEventListener('change', (event) => {
+            numSpiders = parseInt(event.target.value, 10);
+            initialize();
+        });
+
+        numSpiders = parseInt(spiderCountSelect.value, 10);
+
+        beeBotCanvas.addEventListener('mousedown', handleMouseDown);
+        beeBotCanvas.addEventListener('mousemove', handleMouseMove);
+        beeBotCanvas.addEventListener('mouseup', handleMouseUp);
+        beeBotCanvas.addEventListener('mouseleave', handleMouseUp);
+
+        beeBotCanvas.addEventListener('touchstart', handleTouchStart);
+        beeBotCanvas.addEventListener('touchmove', handleTouchMove);
+        beeBotCanvas.addEventListener('touchend', handleTouchEnd);
+        beeBotCanvas.addEventListener('touchcancel', handleTouchEnd);
+
+        // --- Keyboard Support ---
+        document.addEventListener('keydown', (e) => {
+            if (messageBox.style.display === 'block') {
+                if (e.key === 'Escape' || e.key === 'Enter') {
+                    messageBox.style.display = 'none';
+                    e.preventDefault();
+                }
+                return;
+            }
+            switch (e.key) {
+                case 'ArrowUp':
+                    e.preventDefault();
+                    addCommand('forward');
+                    break;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    addCommand('backward');
+                    break;
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    addCommand('left');
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    addCommand('right');
+                    break;
+                case 'Enter':
+                    e.preventDefault();
+                    executeProgram();
+                    break;
+                case 'Escape':
+                    e.preventDefault();
+                    if (!isAnimating) {
+                        commands.length = 0;
+                        updateProgramDisplay();
+                    }
+                    break;
+                case 'h':
+                case 'H':
+                    e.preventDefault();
+                    returnToHome();
+                    break;
+                case 'p':
+                case 'P':
+                    e.preventDefault();
+                    togglePen();
+                    break;
+            }
+        });
+
+        // --- Initial Load ---
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        loadConfig();
+    };
+</script>
+
+</body>
+</html>

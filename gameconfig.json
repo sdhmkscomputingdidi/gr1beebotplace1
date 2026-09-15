@@ -1,0 +1,12 @@
+{
+  "settings": {
+    "backgroundColor": "#e2e8f0",
+    "initialBeeBotPosition": {
+      "x": 1,
+      "y": 1,
+      "dir": 0
+    },
+    "gridSize": 5,
+    "enableDragAndDrop": true
+  }
+}
