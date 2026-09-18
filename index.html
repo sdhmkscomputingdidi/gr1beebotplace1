@@ -382,6 +382,34 @@
             });
         }
 
+        // --- Pathfinding (BFS) ---
+        function canReachTarget(startX, startY, targetX, targetY, obstacles) {
+            const visited = new Set();
+            const queue = [{ x: startX, y: startY }];
+            visited.add(`${startX},${startY}`);
+            const dirs = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+            while (queue.length > 0) {
+                const { x, y } = queue.shift();
+                if (x === targetX && y === targetY) return true;
+                for (const [dx, dy] of dirs) {
+                    const nx = x + dx;
+                    const ny = y + dy;
+                    const key = `${nx},${ny}`;
+                    if (nx >= 0 && nx < gridSize && ny >= 0 && ny < gridSize && !visited.has(key) && !obstacles.has(key)) {
+                        visited.add(key);
+                        queue.push({ x: nx, y: ny });
+                    }
+                }
+            }
+            return false;
+        }
+
+        function getSpiderObstacleSet(spiderPositions) {
+            const s = new Set();
+            spiderPositions.forEach(sp => s.add(`${sp.x},${sp.y}`));
+            return s;
+        }
+
         // --- Game Initialization and Level Management ---
         function loadGameSettings() {
             gameSettings = {
@@ -393,9 +421,9 @@
                         "dir": 0
                     },
                     "gridSize": 4,
-                    "enableDragAndDrop": true
-                }
-            };
+                    "enableDragAndDrop": false
+        }
+    };
         }
 
         function loadConfig() {
@@ -457,15 +485,20 @@
 
             safetyCounter = 0;
             for (let i = 0; i < levelData.spiders; i++) {
-                let newSpiderX, newSpiderY;
-                do {
-                    newSpiderX = Math.floor(Math.random() * gridSize);
-                    newSpiderY = Math.floor(Math.random() * gridSize);
-                    safetyCounter++;
-                } while (occupiedPositions.some(p => p.x === newSpiderX && p.y === newSpiderY) && safetyCounter < maxAttempts);
-                if (safetyCounter < maxAttempts) {
-                    spiderPositions.push({ x: newSpiderX, y: newSpiderY });
-                    occupiedPositions.push({ x: newSpiderX, y: newSpiderY });
+                let placed = false;
+                let attempts = 0;
+                while (!placed && attempts < maxAttempts) {
+                    let newSpiderX = Math.floor(Math.random() * gridSize);
+                    let newSpiderY = Math.floor(Math.random() * gridSize);
+                    attempts++;
+                    if (occupiedPositions.some(p => p.x === newSpiderX && p.y === newSpiderY)) continue;
+                    const tempSpiders = [...spiderPositions, { x: newSpiderX, y: newSpiderY }];
+                    const obs = getSpiderObstacleSet(tempSpiders);
+                    if (targetPositions.length > 0 && canReachTarget(beeBotStartX, beeBotStartY, targetPositions[0].x, targetPositions[0].y, obs)) {
+                        spiderPositions.push({ x: newSpiderX, y: newSpiderY });
+                        occupiedPositions.push({ x: newSpiderX, y: newSpiderY });
+                        placed = true;
+                    }
                 }
             }
 
@@ -809,17 +842,14 @@
         });
         goBtn.addEventListener('click', executeProgram);
         homeBtn.addEventListener('click', returnToHome);
-        nextChallengeBtn.addEventListener('click', () => !isAnimating && loadLevel());
+        nextChallengeBtn.disabled = true;
+        nextChallengeBtn.style.opacity = '0.5';
+        nextChallengeBtn.style.cursor = 'not-allowed';
         clearBtn.addEventListener('click', () => !isAnimating && (commands.length = 0, updateProgramDisplay()));
         penBtn.addEventListener('click', togglePen);
-        decoyToggleBtn.addEventListener('click', () => {
-            showDecoys = !showDecoys;
-            decoyToggleBtn.classList.toggle('active', showDecoys);
-            decoyToggleBtn.setAttribute('aria-pressed', showDecoys);
-            if (!isAnimating) {
-                initialize(gameConfig.levels[currentLevelIndex]);
-            }
-        });
+        decoyToggleBtn.disabled = true;
+        decoyToggleBtn.style.opacity = '0.5';
+        decoyToggleBtn.style.cursor = 'not-allowed';
         messageCloseBtn.addEventListener('click', () => messageBox.style.display = 'none');
         fullscreenBtn.addEventListener('click', toggleFullScreen);
         document.addEventListener('fullscreenchange', updateFullscreenIcons);

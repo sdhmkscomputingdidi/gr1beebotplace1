@@ -336,6 +336,33 @@
         let draggedItem = null;
         let dragOffsetX, dragOffsetY;
 
+        function canReachTarget(startX, startY, targetX, targetY, obstacles) {
+            const visited = new Set();
+            const queue = [{ x: startX, y: startY }];
+            visited.add(`${startX},${startY}`);
+            const dirs = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+            while (queue.length > 0) {
+                const { x, y } = queue.shift();
+                if (x === targetX && y === targetY) return true;
+                for (const [dx, dy] of dirs) {
+                    const nx = x + dx;
+                    const ny = y + dy;
+                    const key = `${nx},${ny}`;
+                    if (nx >= 0 && nx < gridSize && ny >= 0 && ny < gridSize && !visited.has(key) && !obstacles.has(key)) {
+                        visited.add(key);
+                        queue.push({ x: nx, y: ny });
+                    }
+                }
+            }
+            return false;
+        }
+
+        function getSpiderObstacleSet(spiderPositions) {
+            const s = new Set();
+            spiderPositions.forEach(sp => s.add(`${sp.x},${sp.y}`));
+            return s;
+        }
+
         async function loadConfig() {
             gameConfig = {
                 "settings": {
@@ -346,7 +373,7 @@
                         "dir": 0
                     },
                     "gridSize": 4,
-                    "enableDragAndDrop": true
+                    "enableDragAndDrop": false
                 }
             };
             applyConfig();
@@ -396,17 +423,24 @@
 
             spiderPositions = [];
             const occupiedPositions = [{x: beeBotX, y: beeBotY}, {x: targetX, y: targetY}];
+            const maxAttempts = gridSize * gridSize * 2;
 
             for (let i = 0; i < numSpiders; i++) {
-                let newSpiderX, newSpiderY;
-                let isOccupied;
-                do {
-                    newSpiderX = Math.floor(Math.random() * gridSize);
-                    newSpiderY = Math.floor(Math.random() * gridSize);
-                    isOccupied = occupiedPositions.some(pos => pos.x === newSpiderX && pos.y === newSpiderY);
-                } while (isOccupied);
-                spiderPositions.push({x: newSpiderX, y: newSpiderY});
-                occupiedPositions.push({x: newSpiderX, y: newSpiderY});
+                let placed = false;
+                let attempts = 0;
+                while (!placed && attempts < maxAttempts) {
+                    let newSpiderX = Math.floor(Math.random() * gridSize);
+                    let newSpiderY = Math.floor(Math.random() * gridSize);
+                    attempts++;
+                    if (occupiedPositions.some(pos => pos.x === newSpiderX && pos.y === newSpiderY)) continue;
+                    const tempSpiders = [...spiderPositions, {x: newSpiderX, y: newSpiderY}];
+                    const obs = getSpiderObstacleSet(tempSpiders);
+                    if (canReachTarget(beeBotStartX, beeBotStartY, targetX, targetY, obs)) {
+                        spiderPositions.push({x: newSpiderX, y: newSpiderY});
+                        occupiedPositions.push({x: newSpiderX, y: newSpiderY});
+                        placed = true;
+                    }
+                }
             }
 
             draw();
@@ -785,10 +819,9 @@
         });
         goBtn.addEventListener('click', executeProgram);
         homeBtn.addEventListener('click', returnToHome);
-        nextChallengeBtn.addEventListener('click', () => {
-            if (isAnimating) return;
-            initialize();
-        });
+        nextChallengeBtn.disabled = true;
+        nextChallengeBtn.style.opacity = '0.5';
+        nextChallengeBtn.style.cursor = 'not-allowed';
 
         clearBtn.addEventListener('click', () => {
             if (isAnimating) return;
